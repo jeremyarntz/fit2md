@@ -1,0 +1,14 @@
+services:
+  php:
+    build: .
+    volumes:
+      - .:/app
+      - composer-cache:/composer/cache
+    working_dir: /app
+    environment:
+      COMPOSER_HOME: /composer
+    tty: true
+    stdin_open: true
+
+volumes:
+  composer-cache:
