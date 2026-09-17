@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain;
 
-use DateTimeImmutable;
-use InvalidArgumentException;
-
 final readonly class Activity
 {
     /**
@@ -14,21 +11,21 @@ final readonly class Activity
      * @param list<Lap>              $laps
      */
     public function __construct(
-        public DateTimeImmutable $startedAt,
+        public \DateTimeImmutable $startedAt,
         public array $samples,
         public array $laps,
-        public ?string $sport = null,
-        public ?string $subSport = null,
+        public ?int $sport = null,
+        public ?int $subSport = null,
     ) {
-        if ($samples === []) {
-            throw new InvalidArgumentException('An activity must have at least one sample.');
+        if ([] === $samples) {
+            throw new \InvalidArgumentException('An activity must have at least one sample.');
         }
 
         $previous = null;
 
         foreach ($samples as $sample) {
-            if ($previous !== null && $sample->timestamp < $previous) {
-                throw new InvalidArgumentException('Samples must be ordered by timestamp.');
+            if (null !== $previous && $sample->timestamp < $previous) {
+                throw new \InvalidArgumentException('Samples must be ordered by timestamp.');
             }
 
             $previous = $sample->timestamp;
@@ -56,7 +53,7 @@ final readonly class Activity
      *
      * @return list<Sample>
      */
-    public function samplesBetween(DateTimeImmutable $from, DateTimeImmutable $to): array
+    public function samplesBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         $found = [];
 

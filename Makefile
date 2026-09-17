@@ -14,3 +14,9 @@ test:
 
 stan:
 	docker compose exec php vendor/bin/phpstan analyse
+
+cs:
+	docker compose exec php vendor/bin/php-cs-fixer fix --dry-run --diff
+
+cs-fix:
+	docker compose exec php vendor/bin/php-cs-fixer fix
