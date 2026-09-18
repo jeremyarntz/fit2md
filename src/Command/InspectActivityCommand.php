@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Parser\ActivityParserRegistry;
 use App\Parser\Exception\ActivityParseException;
 use App\Parser\Exception\UnsupportedFileException;
+use App\Rendering\MarkdownRenderer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -56,6 +57,10 @@ final class InspectActivityCommand extends Command
 
             return Command::FAILURE;
         }
+
+        $markdownRenderer = new MarkdownRenderer();
+
+        $markdownText = $markdownRenderer->render($activity);
 
         $io->title('Activity summary');
 

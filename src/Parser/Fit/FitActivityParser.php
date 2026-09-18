@@ -25,7 +25,7 @@ final class FitActivityParser implements ActivityParserInterface
         }
 
         try {
-            $fit = new phpFITFileAnalysis($path);
+            $fit = @new phpFITFileAnalysis($path);
         } catch (\Throwable $e) {
             throw new ActivityParseException(sprintf('Failed to decode FIT file "%s".', $path), previous: $e);
         }
