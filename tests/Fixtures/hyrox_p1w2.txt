@@ -43,14 +43,14 @@ Back-to-Back + Anchor
 
 Part 1:
 
-* 8 x deadlift (slow) | 75#
-* 8 x pullover, rest | 60#
+* 8 x deadlift (slow) | 50# | 2 rounds | RPE 7
+* 8 x pullover, rest | 35# | 2 rounds
 * Anchor: 4 x broad jump to burpee to shuffle back | note: used bench
 
 Part 2:
 
-* 8 x skier swing | 20#
-* 8 x single dumbbell overhead tricep extension, rest | 60 #
+* 8 x skier swing | 25#
+* 8 x single dumbbell overhead tricep extension, rest | 25#
 * Anchor: 4 x broad jump to burpee to shuffle back | note: used bench
 
 Repeat parts 1 and 2 until time is called

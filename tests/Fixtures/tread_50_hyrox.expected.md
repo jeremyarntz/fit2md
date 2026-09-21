@@ -46,12 +46,12 @@
 - *Zones (min):* Grey: 0.0 | Blue: 0.2 | Green: 5.0 | Orange: 4.8 | Red: 0.0
 - Back-to-Back + Anchor
 - Part 1:
-- 8 x deadlift (slow) | 75#
-- 8 x pullover, rest | 60#
+- *deadlift (slow):* 2x8 @ 50 lb, RPE 7
+- *pullover, rest:* 2x8 @ 35 lb
 - Anchor: 4 x broad jump to burpee to shuffle back | note: used bench
 - Part 2:
-- 8 x skier swing | 20#
-- 8 x single dumbbell overhead tricep extension, rest | 60 #
+- *skier swing:* 8 reps @ 25 lb
+- *single dumbbell overhead tricep extension, rest:* 8 reps @ 25 lb
 - Anchor: 4 x broad jump to burpee to shuffle back | note: used bench
 - Repeat parts 1 and 2 until time is called
 - 90 sec recovery, transition to rower

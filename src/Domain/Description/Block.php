@@ -7,7 +7,7 @@ namespace App\Domain\Description;
 final readonly class Block
 {
     /**
-     * @param list<string> $lines
+     * @param list<BlockLine> $lines
      */
     public function __construct(
         public string $name,

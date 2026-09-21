@@ -7,6 +7,7 @@ namespace App\Description\Text;
 use App\Description\DescriptionParserInterface;
 use App\Description\Exception\DescriptionParseException;
 use App\Domain\Description\Block;
+use App\Domain\Description\BlockLine;
 use App\Domain\Description\WorkoutDescription;
 
 final class PlainTextDescriptionParser implements DescriptionParserInterface
@@ -18,6 +19,11 @@ final class PlainTextDescriptionParser implements DescriptionParserInterface
     private const FIELD_PATTERN = '/^(?<key>[a-z]+):\s*(?<value>.+)$/i';
 
     private const KNOWN_FIELDS = ['coach', 'location', 'rpe', 'notes'];
+
+    public function __construct(
+        private readonly ExerciseLineParser $exerciseParser = new ExerciseLineParser(),
+    ) {
+    }
 
     public function supports(string $path): bool
     {
@@ -72,7 +78,8 @@ final class PlainTextDescriptionParser implements DescriptionParserInterface
 
             // Inside a block, every line belongs to it.
             if (null !== $blockName) {
-                $blockLines[] = preg_replace('/^[*-]\s+/', '', $line) ?? $line;
+                $text = preg_replace('/^[*-]\s+/', '', $line) ?? $line;
+                $blockLines[] = new BlockLine($text, $this->exerciseParser->parse($text));
 
                 continue;
             }

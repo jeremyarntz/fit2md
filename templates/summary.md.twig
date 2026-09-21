@@ -32,7 +32,11 @@
 {% endif %}
 {% if segment.block %}
 {% for line in segment.block.lines %}
-- {{ line }}
+{% if line.exercise %}
+- {{ line.exercise|exercise }}
+{% else %}
+- {{ line.text }}
+{% endif %}
 {% endfor %}
 {% endif %}
 {% endfor %}

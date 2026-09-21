@@ -22,5 +22,8 @@ final class PlainTextDescriptionParserTest extends TestCase
         self::assertSame('Tread Block 1', $description->blocks[0]->name);
         self::assertSame(14.5, $description->blocks[0]->durationMinutes);
         self::assertSame('Row Block 1', $description->blocks[3]->name);
+
+        self::assertNull($description->blocks[0]->lines[0]->exercise);
+        self::assertSame(50.0, $description->blocks[2]->lines[2]->exercise?->weight);
     }
 }
