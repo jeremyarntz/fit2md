@@ -10,6 +10,7 @@ It was built around Orange Theory classes recorded on a COROS watch, but isn't t
 
 - Reads `.fit` activity files: heart rate, cadence, distance and laps
 - Reads a plain-text workout description: title, coach, location, RPE, notes and blocks
+- Reads weights, reps, rounds and RPE from block lines, in two notations
 - Matches description blocks to watch laps in order, treating the first lap as a warmup
 - Calculates heart rate stats and minutes per heart rate zone for each block
 - Renders the result as markdown
@@ -77,8 +78,8 @@ Notes: Felt strong on deadlifts.
 * 30 sec surge
 
 **Floor Block 1 (14.5 min)**
-* 8 x deadlift | 75#
-* 8 x pullover | 60#
+* 8 x deadlift | 50# | 2 rounds | RPE 7
+* 8 x pullover | 35#
 ```
 
 The rules:
@@ -88,6 +89,34 @@ The rules:
 - A bold line (`**...**`) starts a block. An optional `(N min)` gives its planned length.
 - Every line after a block's header belongs to that block, until the next header.
 - **List blocks in the order you did them.** In a 2G class that may mean moving the floor blocks to the top.
+
+### Exercises: weights, reps and RPE
+
+Lines inside a block can record what you actually did. Two notations work.
+
+**Reddit style** — start from a pasted post and swap in your numbers:
+
+```
+8 x deadlift (slow) | 50# | 2 rounds | RPE 7
+Skier swing | 25#
+```
+
+**Lifting style** — sets × reps @ weight:
+
+```
+Deadlift 2x8 @ 50 lb RPE 7
+Push-up 3x15
+```
+
+After a `|`, each piece is read as a weight (`50#`, `35 lbs`, `60 kg`), rounds (`2 rounds`), or RPE (`RPE 7`). Anything else is kept as a note. Reps are optional.
+
+Both notations come out in one consistent format:
+
+```
+*deadlift (slow):* 2x8 @ 50 lb, RPE 7
+```
+
+A line is only treated as an exercise if it contains at least one number fit2md understands. Anything else, like `2.5 min tread`, is shown as written.
 
 ### How blocks match laps
 
@@ -155,19 +184,24 @@ cp tests/Fixtures/tread_50.fit tests/Fixtures/hyrox_p1w2.txt workouts/test/
 docker compose exec -e APP_ENV=test php php bin/console fit2md:inspect workouts/test -o tests/Fixtures/tread_50_hyrox.expected.md
 ```
 
+Always copy the fixtures first, even if the folder already exists — the test reads the files in `tests/Fixtures/`, so the copies in `workouts/test/` must match them.
+
 `APP_ENV=test` makes the command use the same zones as the test. Commit the template change and the updated expected file together.
 
 ## Project structure
 
 ```
 src/
-  Domain/       The workout concepts: Activity, Lap, Sample, Segment, zones.
-                Pure PHP with no dependencies on anything else in the project.
+  Domain/       The workout concepts: Activity, Lap, Sample, Segment, zones,
+                exercises. Pure PHP with no dependencies on anything else in
+                the project.
   Parser/       Reads activity files (.fit) into domain objects.
-  Description/  Reads description files (.txt) into domain objects.
+  Description/  Reads description files (.txt) into domain objects, including
+                the exercises on each line.
   Analysis/     Works things out from the data: matching blocks to laps, zones.
   Application/  Coordinates the work: finds the files, parses, builds the summary.
-  Rendering/    Turns a summary into text.
+  Rendering/    Turns a summary into text, including the Twig filters for
+                durations and exercises.
   Command/      The console command — a thin entry point.
 templates/
   summary.md.twig   The output layout.
@@ -190,10 +224,10 @@ It prints warnings on some COROS files, because it doesn't recognise COROS's cus
 - v0.1 — FIT file to markdown summary
 - v0.2 — Description blocks matched to lap heart rate data
 - v0.3 — Heart rate zones per block
+- v0.4 — Weights, reps and RPE parsed from block lines
 
 **Next**
 
-- v0.4 — Parse weight, reps and RPE from block lines
 - v0.4.1 — `fit2md:new` command to create blank description files per workout type (OTF, outdoor run, resistance training)
 - v0.4.2 — AI description normalizer: turn any write-up into the description format
 - v0.4.3 — Screenshot extraction (Tesseract or a vision model) for OTF summary data
@@ -203,7 +237,7 @@ It prints warnings on some COROS files, because it doesn't recognise COROS's cus
 - Rename `fit2md:inspect` to `fit2md:summarize`
 - Make the display timezone configurable
 - Add a `Type:` field so zones and warmup rules can vary per workout type
-- Clean up test fixtures: one real, matching workout; anonymize personal details before going public
+- Clean up test fixtures: one real, matching workout folder inside `tests/Fixtures/`, so regenerating the golden file no longer needs a copy step; anonymize personal details before going public
 
 **Someday**
 
