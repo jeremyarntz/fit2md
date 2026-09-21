@@ -72,7 +72,7 @@ final class PlainTextDescriptionParser implements DescriptionParserInterface
 
             // Inside a block, every line belongs to it.
             if (null !== $blockName) {
-                $blockLines[] = $line;
+                $blockLines[] = preg_replace('/^[*-]\s+/', '', $line) ?? $line;
 
                 continue;
             }

@@ -11,19 +11,25 @@
 
 - **User Feedback:**
 {% if d.rpe %}
-- **Overall RPE:** {{ d.rpe }}/10
+  - **Overall RPE:** {{ d.rpe }}/10
 {% endif %}
 {% if d.notes %}
-- **Notes:** {{ d.notes }}
+  - **Notes:** {{ d.notes }}
 {% endif %}
 {% endif %}
 
+## Block-by-Block Execution
+{% for segment in summary.segments %}
 
-## Laps
-{% for lap in summary.activity.laps %}
-{% set stats = summary.activity.heartRateStatsForLap(lap) %}
+### {{ segment.label }}{% if segment.lap %} ({{ segment.lap.timerSeconds|duration }}){% endif %}
 
-### {{ loop.first ? 'Warmup' : 'Lap ' ~ loop.index0 }} ({{ lap.timerSeconds|duration }})
-- *HR Metrics:* Avg: {{ stats.average }} bpm | Min: {{ stats.min }} bpm | Max: {{ stats.max }} bpm
+{% if segment.heartRate %}
+- *HR Metrics:* Avg: {{ segment.heartRate.average }} bpm | Min: {{ segment.heartRate.min }} bpm | Max: {{ segment.heartRate.max }} bpm
+{% endif %}
+{% if segment.block %}
+{% for line in segment.block.lines %}
+- {{ line }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 {% endautoescape %}

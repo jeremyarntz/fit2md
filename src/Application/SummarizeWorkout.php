@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application;
 
+use App\Analysis\SegmentBuilder;
 use App\Description\DescriptionParserInterface;
 use App\Domain\WorkoutSummary;
 use App\Parser\ActivityParserRegistry;
@@ -13,6 +14,7 @@ final readonly class SummarizeWorkout
     public function __construct(
         private ActivityParserRegistry $parsers,
         private DescriptionParserInterface $descriptionParser,
+        private SegmentBuilder $segmentBuilder,
     ) {
     }
 
@@ -24,6 +26,10 @@ final readonly class SummarizeWorkout
             ? $this->descriptionParser->parse($input->descriptionPath)
             : null;
 
-        return new WorkoutSummary(activity: $activity, description: $description);
+        return new WorkoutSummary(
+            activity: $activity,
+            description: $description,
+            segments: $this->segmentBuilder->build($activity, $description),
+        );
     }
 }
