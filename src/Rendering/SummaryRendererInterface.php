@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Rendering;
 
-use App\Domain\Activity;
+use App\Domain\WorkoutSummary;
 
 interface SummaryRendererInterface
 {
-    public function render(Activity $activity): string;
+    public function render(WorkoutSummary $summary): string;
 }

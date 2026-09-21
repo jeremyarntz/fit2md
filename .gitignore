@@ -25,3 +25,5 @@ phpstan.neon
 /scratch/
 /.php-cs-fixer.cache
 /scratch/
+
+/output/

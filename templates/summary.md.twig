@@ -1,0 +1,28 @@
+{% autoescape false %}
+# Workout Summary{% if summary.title %}: {{ summary.title }}{% endif %}
+
+- **Date/Time:** {{ summary.activity.startedAt|date('Y-m-d @ H:i', timezone) }}
+{%- if summary.coach %} | **Coach:** {{ summary.coach }}{% endif %}
+{%- if summary.location %} | **Location:** {{ summary.location }}{% endif %}
+
+- **Overall Stats:** HR Avg: {{ summary.activity.heartRateStats.average }} bpm | HR Peak: {{ summary.activity.heartRateStats.max }} bpm
+
+{%- if summary.rpe or summary.notes %}
+    - **User Feedback:**
+    {% if summary.rpe %}
+        - **Overall RPE:** {{ summary.rpe }}/10
+    {% endif %}
+    {% if summary.notes %}
+        - **Notes:** {{ summary.notes }}
+    {% endif %}
+{% endif %}
+
+
+## Laps
+{% for lap in summary.activity.laps %}
+{% set stats = summary.activity.heartRateStatsForLap(lap) %}
+
+### {{ loop.first ? 'Warmup' : 'Lap ' ~ loop.index0 }} ({{ lap.timerSeconds|duration }})
+- *HR Metrics:* Avg: {{ stats.average }} bpm | Min: {{ stats.min }} bpm | Max: {{ stats.max }} bpm
+{% endfor %}
+{% endautoescape %}

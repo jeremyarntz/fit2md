@@ -69,4 +69,14 @@ final readonly class Activity
 
         return $found;
     }
+
+    public function heartRateStats(): HeartRateStats
+    {
+        return HeartRateStats::fromSamples($this->samples);
+    }
+
+    public function heartRateStatsForLap(Lap $lap): HeartRateStats
+    {
+        return HeartRateStats::fromSamples($this->samplesBetween($lap->startTime, $lap->endTime));
+    }
 }

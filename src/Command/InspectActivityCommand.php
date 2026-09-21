@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Parser\ActivityParserRegistry;
+use App\Application\SummarizeWorkout;
 use App\Parser\Exception\ActivityParseException;
 use App\Parser\Exception\UnsupportedFileException;
-use App\Rendering\MarkdownRenderer;
+use App\Rendering\SummaryRendererInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -21,9 +22,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class InspectActivityCommand extends Command
 {
-    // Inject services here if needed via dependency injection
-    public function __construct(private readonly ActivityParserRegistry $registry)
-    {
+    public function __construct(
+        private readonly SummarizeWorkout $summarizer,
+        private readonly SummaryRendererInterface $renderer,
+    ) {
         parent::__construct();
     }
 
@@ -31,12 +33,14 @@ final class InspectActivityCommand extends Command
     {
         $this
             ->addArgument('workoutDataPath', InputArgument::REQUIRED, 'workout data path')
+            ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'Write the summary to this file instead of stdout')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
         $workoutDataPath = $input->getArgument('workoutDataPath');
 
         if (!is_string($workoutDataPath)) {
@@ -46,43 +50,35 @@ final class InspectActivityCommand extends Command
         }
 
         try {
-            $parser = $this->registry->parserFor($workoutDataPath);
-            $activity = $parser->parse($workoutDataPath);
-        } catch (UnsupportedFileException $e) {
-            $io->error($e->getMessage());
-
-            return Command::FAILURE;
-        } catch (ActivityParseException $e) {
+            $summary = $this->summarizer->summarize($workoutDataPath);
+            $markdown = $this->renderer->render($summary);
+        } catch (UnsupportedFileException|ActivityParseException $e) {
             $io->error($e->getMessage());
 
             return Command::FAILURE;
         }
 
-        $markdownRenderer = new MarkdownRenderer();
+        $outputPath = $input->getOption('output');
 
-        $markdownText = $markdownRenderer->render($activity);
+        if (null === $outputPath) {
+            $output->writeln($markdown);
 
-        $io->title('Activity summary');
-
-        $io->definitionList(
-            ['Started (UTC)' => $activity->startedAt->format('Y-m-d H:i:s')],
-            ['Duration' => sprintf('%d s', $activity->durationSeconds())],
-            ['Samples' => count($activity->samples)],
-            ['Sport' => $activity->sport ?? '—'],
-        );
-
-        $rows = [];
-
-        foreach ($activity->laps as $lap) {
-            $rows[] = [
-                $lap->index,
-                sprintf('%.1f', $lap->timerSeconds),
-                $lap->avgHeartRate ?? '—',
-                $lap->maxHeartRate ?? '—',
-            ];
+            return Command::SUCCESS;
         }
 
-        $io->table(['#', 'Timer (s)', 'Avg HR', 'Max HR'], $rows);
+        if (!is_string($outputPath)) {
+            $io->error('Output path must be a single file path.');
+
+            return Command::INVALID;
+        }
+
+        if (false === file_put_contents($outputPath, $markdown)) {
+            $io->error(sprintf('Could not write to "%s".', $outputPath));
+
+            return Command::FAILURE;
+        }
+
+        $io->success(sprintf('Wrote summary to %s', $outputPath));
 
         return Command::SUCCESS;
     }
