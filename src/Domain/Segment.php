@@ -12,6 +12,7 @@ final readonly class Segment
         public string $label,
         public ?Lap $lap = null,
         public ?HeartRateStats $heartRate = null,
+        public ?ZoneDistribution $zones = null,
         public ?Block $block = null,
     ) {
         if (null === $lap && null === $block) {

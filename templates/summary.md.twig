@@ -26,6 +26,10 @@
 {% if segment.heartRate %}
 - *HR Metrics:* Avg: {{ segment.heartRate.average }} bpm | Min: {{ segment.heartRate.min }} bpm | Max: {{ segment.heartRate.max }} bpm
 {% endif %}
+{% if segment.zones %}
+- *Zones (min):* {% for zone in segment.zones.entries %}{{ zone.name }}: {{ (zone.seconds / 60)|number_format(1) }}{% if not loop.last %} | {% endif %}{% endfor %}
+
+{% endif %}
 {% if segment.block %}
 {% for line in segment.block.lines %}
 - {{ line }}
