@@ -1,20 +1,21 @@
 {% autoescape false %}
-# Workout Summary{% if summary.title %}: {{ summary.title }}{% endif %}
+{% set d = summary.description %}
+# Workout Summary{% if d and d.title %}: {{ d.title }}{% endif %}
 
 - **Date/Time:** {{ summary.activity.startedAt|date('Y-m-d @ H:i', timezone) }}
-{%- if summary.coach %} | **Coach:** {{ summary.coach }}{% endif %}
-{%- if summary.location %} | **Location:** {{ summary.location }}{% endif %}
+{%- if d and d.coach %} | **Coach:** {{ d.coach }}{% endif %}
+{%- if d and d.location %} | **Location:** {{ d.location }}{% endif %}
 
 - **Overall Stats:** HR Avg: {{ summary.activity.heartRateStats.average }} bpm | HR Peak: {{ summary.activity.heartRateStats.max }} bpm
+{%- if d and (d.rpe or d.notes) %}
 
-{%- if summary.rpe or summary.notes %}
-    - **User Feedback:**
-    {% if summary.rpe %}
-        - **Overall RPE:** {{ summary.rpe }}/10
-    {% endif %}
-    {% if summary.notes %}
-        - **Notes:** {{ summary.notes }}
-    {% endif %}
+- **User Feedback:**
+{% if d.rpe %}
+- **Overall RPE:** {{ d.rpe }}/10
+{% endif %}
+{% if d.notes %}
+- **Notes:** {{ d.notes }}
+{% endif %}
 {% endif %}
 
 

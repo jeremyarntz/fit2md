@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Application\Exception\WorkoutFolderException;
 use App\Application\SummarizeWorkout;
+use App\Application\WorkoutFolderLocator;
+use App\Application\WorkoutInput;
+use App\Description\Exception\DescriptionParseException;
 use App\Parser\Exception\ActivityParseException;
 use App\Parser\Exception\UnsupportedFileException;
 use App\Rendering\SummaryRendererInterface;
@@ -25,6 +29,7 @@ final class InspectActivityCommand extends Command
     public function __construct(
         private readonly SummarizeWorkout $summarizer,
         private readonly SummaryRendererInterface $renderer,
+        private readonly WorkoutFolderLocator $locator,
     ) {
         parent::__construct();
     }
@@ -50,9 +55,13 @@ final class InspectActivityCommand extends Command
         }
 
         try {
-            $summary = $this->summarizer->summarize($workoutDataPath);
+            $workoutInput = is_dir($workoutDataPath)
+                ? $this->locator->locate($workoutDataPath)
+                : new WorkoutInput($workoutDataPath);
+
+            $summary = $this->summarizer->summarize($workoutInput);
             $markdown = $this->renderer->render($summary);
-        } catch (UnsupportedFileException|ActivityParseException $e) {
+        } catch (UnsupportedFileException|ActivityParseException|DescriptionParseException|WorkoutFolderException $e) {
             $io->error($e->getMessage());
 
             return Command::FAILURE;

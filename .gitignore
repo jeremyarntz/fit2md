@@ -27,3 +27,4 @@ phpstan.neon
 /scratch/
 
 /output/
+/workouts/

@@ -27,4 +27,15 @@ final readonly class ActivityParserRegistry
 
         throw new UnsupportedFileException(sprintf('No parser supports "%s".', $path));
     }
+
+    public function supports(string $path): bool
+    {
+        foreach ($this->parsers as $parser) {
+            if ($parser->supports($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
