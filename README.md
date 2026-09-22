@@ -62,6 +62,34 @@ A few things to know:
 - `workouts/` and `output/` are gitignored. Workout data is personal and is never committed.
 - Only the project folder is shared with the container, so input and output paths must be inside the project.
 
+## Creating a blank description
+
+`fit2md:new` writes a blank `description.txt` with the fields and block headers
+for a workout type, so you start from a template instead of a blank page:
+
+```bash
+docker compose exec php php bin/console fit2md:new otf -o workouts/2026-09-17-hyrox/description.txt
+```
+
+It refuses to overwrite a file that's already there, and creates the workout
+folder if it doesn't exist yet. Leave off `-o` to print the template to the
+screen instead:
+
+```bash
+docker compose exec php php bin/console fit2md:new otf
+```
+
+Available types:
+
+| Type         | Blocks it starts with                          |
+|--------------|--------------------------------------------------|
+| `otf`        | Tread Block 1, Floor Block 1, Tread Block 2, Floor Block 2 (a 2G shape) |
+| `run`        | Run                                              |
+| `resistance` | Warmup, Main, Accessory                          |
+
+Fill in the fields and block content yourself — the generated file is a
+starting point, not a finished description. See the format rules below.
+
 ## Description file format
 
 Plain text. Paste a workout write-up (for example, from the OTF subreddit) and add your own details at the top:
@@ -202,7 +230,7 @@ src/
   Application/  Coordinates the work: finds the files, parses, builds the summary.
   Rendering/    Turns a summary into text, including the Twig filters for
                 durations and exercises.
-  Command/      The console command — a thin entry point.
+  Command/      The console commands — thin entry points.
 templates/
   summary.md.twig   The output layout.
 ```
@@ -225,10 +253,10 @@ It prints warnings on some COROS files, because it doesn't recognise COROS's cus
 - v0.2 — Description blocks matched to lap heart rate data
 - v0.3 — Heart rate zones per block
 - v0.4 — Weights, reps and RPE parsed from block lines
+- v0.4.1 — `fit2md:new` command to create blank description files per workout type (OTF, outdoor run, resistance training)
 
 **Next**
 
-- v0.4.1 — `fit2md:new` command to create blank description files per workout type (OTF, outdoor run, resistance training)
 - v0.4.2 — AI description normalizer: turn any write-up into the description format
 - v0.4.3 — Screenshot extraction (Tesseract or a vision model) for OTF summary data
 
