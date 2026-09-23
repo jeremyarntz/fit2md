@@ -8,6 +8,17 @@ framework:
     #esi: true
     #fragments: true
 
+    http_client:
+        scoped_clients:
+            anthropic.client:
+                base_uri: 'https://api.anthropic.com'
+                timeout: '%env(float:FIT2MD_NORMALIZER_TIMEOUT)%'
+                headers:
+                    anthropic-version: '2023-06-01'
+                retry_failed:
+                    max_retries: 2
+                    http_codes: [429, 500, 502, 503, 504, 529]
+
 when@test:
     framework:
         test: true
