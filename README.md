@@ -14,6 +14,7 @@ It was built around Orange Theory classes recorded on a COROS watch, but isn't t
 - Matches description blocks to watch laps in order, treating the first lap as a warmup
 - Calculates heart rate stats and minutes per heart rate zone for each block
 - Renders the result as markdown
+- Optionally cleans up a messy workout write-up into the description format, using the Claude API
 
 ## Requirements
 
@@ -89,6 +90,37 @@ Available types:
 
 Fill in the fields and block content yourself — the generated file is a
 starting point, not a finished description. See the format rules below.
+
+## Cleaning up a write-up
+
+Workout write-ups, such as a post from the OTF subreddit, are often long and
+repetitive. `fit2md:normalize` sends one to the Claude API and gets back a
+compact description file in the [format below](#description-file-format):
+
+```bash
+docker compose exec php php bin/console fit2md:normalize raw.txt
+```
+
+The result prints to the screen so you can check it first. To write it to a
+file, add `-o`:
+
+```bash
+docker compose exec php php bin/console fit2md:normalize raw.txt -o workouts/2026-09-17-hyrox/description.txt
+```
+
+What it does:
+
+- Condenses exact repeats into one line, for example `4 rounds: 2.5 min tread + 30 sec surge`.
+- Keeps `Coach:`, `Location:`, `RPE:` and `Notes:` if the write-up has them, and never adds them otherwise. Anything about what limited you goes into `Notes:`.
+- Checks that the result is a valid description with at least one block before printing or writing it. If it isn't, the command fails and shows what the model returned.
+- Refuses to overwrite an existing file unless you add `--force`, and checks this before calling the API.
+
+**Always review the result before using it.** The model is told never to invent
+or change numbers, but it's a language model: a wrong weight in your training
+log is worse than a missing one.
+
+Normalizing is always a separate step. `fit2md:inspect` never calls the API.
+It needs an API key; see [Claude API](#claude-api).
 
 ## Description file format
 
@@ -184,6 +216,26 @@ Tests don't read `.env.local`. They use the fixed zones in `.env.test`, so resul
 
 Times are stored in UTC and converted only for display. The display timezone is currently set in `src/Rendering/MarkdownRenderer.php` (`America/Chicago`).
 
+### Claude API
+
+Only `fit2md:normalize` uses it. Add your key to `.env.local`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Without a key, the command stops with an error and makes no request. The other settings have defaults in `.env`, and you can override them in `.env.local`:
+
+| Variable                        | Default           | Meaning                                  |
+|---------------------------------|-------------------|------------------------------------------|
+| `FIT2MD_NORMALIZER_MODEL`       | `claude-sonnet-5` | Which Claude model to use                |
+| `FIT2MD_NORMALIZER_MAX_TOKENS`  | `16000`           | Upper limit on the response, including the model's thinking |
+| `FIT2MD_NORMALIZER_TIMEOUT`     | `60`              | Seconds to wait for a response           |
+
+Rate limits (HTTP 429) and server errors (5xx, 529) are retried twice before the command gives up.
+
+The instructions sent to the model are in `templates/prompts/normalize_description.md`. You can edit them without touching any PHP.
+
 ## Development
 
 Run these from your Mac, in the project root:
@@ -227,12 +279,15 @@ src/
   Description/  Reads description files (.txt) into domain objects, including
                 the exercises on each line.
   Analysis/     Works things out from the data: matching blocks to laps, zones.
-  Application/  Coordinates the work: finds the files, parses, builds the summary.
+  Normalization/  Turns a messy write-up into a description, via the Claude API.
+  Application/  Coordinates the work: finds the files, parses, builds the summary,
+                checks normalized descriptions.
   Rendering/    Turns a summary into text, including the Twig filters for
                 durations and exercises.
   Command/      The console commands — thin entry points.
 templates/
-  summary.md.twig   The output layout.
+  summary.md.twig                    The output layout.
+  prompts/normalize_description.md   The instructions sent to Claude.
 ```
 
 The rule that keeps this manageable: dependencies point inward. Everything may use `Domain/`, and `Domain/` uses nothing else.
@@ -254,10 +309,10 @@ It prints warnings on some COROS files, because it doesn't recognise COROS's cus
 - v0.3 — Heart rate zones per block
 - v0.4 — Weights, reps and RPE parsed from block lines
 - v0.4.1 — `fit2md:new` command to create blank description files per workout type (OTF, outdoor run, resistance training)
+- v0.4.2 — `fit2md:normalize` command: turn any write-up into the description format with the Claude API
 
 **Next**
 
-- v0.4.2 — AI description normalizer: turn any write-up into the description format
 - v0.4.3 — Screenshot extraction (Tesseract or a vision model) for OTF summary data
 
 **Housekeeping**

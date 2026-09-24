@@ -43,13 +43,17 @@ src/
   Parser/       Activity file parsers (.fit). ActivityParserInterface + ActivityParserRegistry.
   Description/  Description parsers (.txt). PlainTextDescriptionParser + ExerciseLineParser.
   Analysis/     Derived data: SegmentBuilder (blocks to laps), ZoneProfileProvider.
-  Application/  Orchestration: SummarizeWorkout, WorkoutFolderLocator, WorkoutInput.
+  Normalization/  DescriptionNormalizerInterface + Claude/ClaudeDescriptionNormalizer (Anthropic Messages API).
+  Application/  Orchestration: SummarizeWorkout, WorkoutFolderLocator, WorkoutInput, NormalizeDescription.
   Rendering/    SummaryRendererInterface, MarkdownRenderer (Twig), Twig filters in Rendering/Twig/.
-  Command/      InspectActivityCommand: thin entry point, no logic.
-templates/summary.md.twig   The output layout.
+  Command/      InspectActivityCommand, NewDescriptionCommand, NormalizeDescriptionCommand: thin entry points, no logic.
+templates/summary.md.twig                  The output layout.
+templates/prompts/normalize_description.md  The normalizer's system prompt (a plain file, not Twig).
 ```
 
 The flow: `WorkoutFolderLocator` finds the files, `SummarizeWorkout` parses them and builds a `WorkoutSummary` (activity + description + segments), `MarkdownRenderer` renders it, and the command writes it to stdout or `-o`.
+
+Normalizing is a separate flow: `NormalizeDescriptionCommand` calls `NormalizeDescription`, which calls the normalizer and rejects output that parses into zero blocks. The command only ever sees `DescriptionNormalizerInterface` through that service, so tests use `tests/Normalization/FakeDescriptionNormalizer`.
 
 Rules:
 
@@ -59,6 +63,7 @@ Rules:
 - **Templates arrange; PHP computes.** Calculations belong in domain methods or Twig filters, not template logic.
 - **New file formats are new classes.** Implementing `ActivityParserInterface` (or `DescriptionParserInterface`) is enough; `#[AutoconfigureTag]` on the interface registers it. No config edits.
 - **Don't pigeonhole to Orange Theory.** OTF specifics belong in configuration (zones via `FIT2MD_ZONES`) or switches (`SegmentBuilder::$firstLapIsWarmup`), not hardcoded logic.
+- **Normalizing is always explicit.** `fit2md:inspect` never calls the API, and normalized output goes to stdout by default so a human reviews it.
 - `src/Domain/` is excluded from service registration in `config/services.yaml`.
 
 ## Coding conventions
@@ -71,7 +76,7 @@ Rules:
 - `mixed` must never escape an adapter. Cast and validate at the boundary (see `FitActivityParser::intOrNull()`).
 - **Missing readings are `null`, never `0`.** A dropped heart rate reading must not drag an average down.
 - **Times are UTC internally.** Convert to the display timezone only when rendering.
-- Custom exceptions are empty classes extending `\RuntimeException`, one per failure kind, in an `Exception/` folder next to the code that throws them.
+- Custom exceptions are empty classes extending `\RuntimeException`, one per failure kind, in an `Exception/` folder next to the code that throws them. The one exception to "empty" is `InvalidNormalizedDescriptionException`, which carries `$rawOutput` so the command can show what the model returned.
 - Use `PREG_UNMATCHED_AS_NULL` when a regex has optional groups, and check with `null !==`.
 - Don't add fields or features until something uses them.
 
@@ -90,6 +95,7 @@ Rules:
 
   Then review the diff before committing. Never regenerate just to make a failing test pass without understanding the change.
 - Tests don't read `.env.local`. Test zones are fixed in `.env.test`.
+- **No test may call the real API.** Test `ClaudeDescriptionNormalizer` with `MockHttpClient`, and everything above it with `FakeDescriptionNormalizer`. Check the model's actual behaviour by hand: run `fit2md:normalize tests/Fixtures/raw_reddit_post.txt` and compare with `raw_reddit_post.normalized.txt`.
 
 ## Gotchas
 
@@ -116,7 +122,16 @@ Rules:
 - `{%-` trims whitespace including newlines; `{%~` trims spaces only.
 - Twig can't be checked by PHPStan. After changing the template or anything it reads, run the command and the golden-file test.
 
-**Environment files** load in order `.env`, `.env.local`, `.env.dev`, `.env.dev.local`; later files win. Personal settings go in `.env.local` only. `.env.dev` is committed and would override `.env.local`. `FIT2MD_ZONES` must always be defined (`[]` turns zones off).
+**Claude normalizer**
+
+- **The prompt follows the parser.** When `PlainTextDescriptionParser` changes (new fields, new notation), update `templates/prompts/normalize_description.md` too. Example: `Limited by` isn't a parser field yet, so the prompt folds it into `Notes:`.
+- Repetition is condensed as `N rounds: ...`, not `Nx (...)`. `ExerciseLineParser` reads `5x (...)` as an exercise with 5 reps.
+- The model must never invent values. The prompt forbids it; there is no code check yet, so humans review the output.
+- Retries (429, 5xx, 529, twice, for POST) live in the `anthropic.client` scoped client in `config/packages/framework.yaml`, not in PHP. `MockHttpClient` bypasses them.
+- Sonnet 5 thinks by default, and thinking counts toward `max_tokens`. Join only `text` blocks from `content`; never assume `content[0]` is text.
+- Don't send `temperature` or an assistant prefill; current models reject both.
+
+**Environment files** load in order `.env`, `.env.local`, `.env.dev`, `.env.dev.local`; later files win. Personal settings go in `.env.local` only. `.env.dev` is committed and would override `.env.local`. `FIT2MD_ZONES` must always be defined (`[]` turns zones off). `ANTHROPIC_API_KEY` is empty in `.env` and set in `.env.local`.
 
 **Namespaces**: PSR-4, `App\` maps to `src/`. A "Class `App\X\Y` not found" error where `Y` lives elsewhere almost always means a missing `use` statement. `make stan` reports all of them at once.
 
@@ -130,8 +145,10 @@ Rules:
 
 ## Status
 
-Done: v0.1 through v0.4 (FIT to markdown, blocks matched to laps, zones per block, weights/reps/RPE parsing).
+Done: v0.1 through v0.4.2 (FIT to markdown, blocks matched to laps, zones per block, weights/reps/RPE parsing, `fit2md:new`, `fit2md:normalize`).
 
-Next: v0.4.1, a `fit2md:new <type>` command that creates a dated workout folder with a blank `description.txt` from a template in `templates/descriptions/`. Plan: a `Type:` description field, templates for OTF, outdoor run and resistance training, and the field parser must accept empty values like `Coach:`. Generated templates should round-trip through the parser.
+Next: v0.4.3, screenshot extraction for OTF summary data. It should reuse the v0.4.2 integration: the same `anthropic.client`, the same configuration, an image content block instead of text, and validation of extracted values before use.
+
+Deferred from v0.4.2: a code check that normalized numbers and personal fields appear in the input; `Limited by` as a parser field; keeping the raw write-up next to `description.txt` (name it `raw.md` so `WorkoutFolderLocator` ignores it); a `--type` option once the `Type:` field exists.
 
 See the README roadmap for everything after that.
